@@ -503,6 +503,7 @@
 
 
 ## 十二:插槽
+```
 <my-button type="success" content="成功按钮">自由定义的文字
 	<template v-slot:second></template>//绑定使用命名的插槽,v-slot:简写是一个#
 </my-button>
@@ -534,6 +535,7 @@
 </template>
 1.:这里slot-scope就是使用vue的插槽
 2.:scope里面存储了两个值,scope.index,scope.row,前者是当前数据的index值,后者是一个对象里面包含了该条数据的所有的信息	
+```
 ## 十三:子组件和父组件传值 prop
 	子组件
 	<template>
@@ -602,7 +604,7 @@
 ####		3:启动vue项目
 			vue serve App //默认是的app.vue,可以省略app 直接写 vue serve
 ####		4:在组件中,调用自己组件的名字,必须给组件一个name属性(树形例子)
-### 十六:利用脚手架搭建项目
+## 十六:利用脚手架搭建项目
 ####	1:命令:
 #####		1:创建项目;vue create vue-app vue-app是项目的名字,可以自定义
 		  创建项目的时候会涉及到很多选择,要注意区分
@@ -723,3 +725,181 @@
 
 ### 进入某一个路径时，执行顺序
 - beforeEach -> beforeEnter -> beforeRouteEnter -> beforeResolve -> afterEach 
+## 十八路由元信息
+    应用场景 在需要登录的才能查看的页面进行去权限校验
+#### 1:配置需要使用权限的路由
+		{
+		path:'/student',
+		name:'student',
+		component:()=>import('./views/Student.vue'),
+		meta:{
+			login:true
+		}
+#### 2:在路由的全局守卫中进行登录校验
+		router.beforeEach((to,form,next)=>{
+			console.log();
+			const needLogin=to.matched.some(item=>item.meta&&item.meta.login);
+			if(needLogin){
+				const isLogin=document.cookie.includes('login=true');
+				if(isLogin){
+					next();
+				}else{
+					const login=window.confirm('该页面需登录,请登陆后操作');
+					if(login){
+						next('/login');
+					}
+				}
+			}else{
+				next();
+			}
+		});
+## 十九vuex状态管理
+
+	命令:vue add vuex
+	$store 状态管理对象
+##	state
+	```
+	 state: {
+	  name:'ss',
+		age:'18',
+		look:'piaoliang',
+		studentlist:[]
+	}
+	===========================
+	this.$sotre.state.xxx 获取state里面的某个属性
+	import {mapState} from 'vuex' 导入,mapState对象 
+	mapState(['name','age','look');拿到vuex state里面的值 ,返回值是一个对象,正好对应计算属性
+		{
+			name:function(){},
+			age:function(){},
+			look:function(){}
+		}
+	computed:{
+		...mapState('name','age','look')//三个点...计算符,拼接对象
+	}
+	...mapState({
+		storeName:state=>state.name//修改vuex里面name的属性(解决和data里面name属性的冲突)
+	})
+	```
+ ####    2:getters
+   ```
+   配置
+   getters:{//类似于vue里面的计算属性,根据data里面的值得到一个新的值
+     person(state){
+   		return `姓名:${state.name} 年龄:${state.age}`;
+   	},
+   	newStudentList(state){
+   		 return state.studentlist.map(student=>`这是姓名${student.name} 这是年龄:${student.age}`)
+   	}
+   }
+   this.$store.getters.xxx 获取gettes里面的属性
+   import {mapGetters} from 'vuex' 导入mapGetters
+   mapGetter(['newStudentList','person']);拿到vuex state里面的值 ,返回值是一个对象,正好对应计算属性
+   	{
+		person(){
+			return 'xxx'
+		},
+   		newStudentList:function(state,getters){
+			return state.studentlist.map(student=>`这是姓名${student.name} 这是年龄:${student.age} 这是getters:${getters.person})`
+		}
+   	}
+   computed:{
+   	...mapGetters('name','age','look')//三个点...计算符,拼接对象
+   }
+   ...mapGetters({
+		newPerson:'person'//修改vuex里面person的属性(解决和data里面name属性的冲突)
+   })
+   ```
+#### 3:mutations 不能放异步代码
+	 在严格模式下,vuex不允许外界修改vuex的state里面的数据,vuex提供了mutations函数,可以在里面声明方法,在外界调用,
+#####	 1:第一种方法
+	 ```
+	 配置:mutations,不能放异步代码
+	  mutations: {
+	 		changeSudentList(state,{tepObj,name,age}){//第二个参数是传递进来的参数,所以所有的参数都放在第二个参数里面
+	 			state.studentlist.push(tepObj);
+	 			state.name=name;
+	 			state.age=age;
+	 		}
+	 }
+	 调用:
+	  this.$store.commit('changeSudentList',{tepObj,name:'11',age:'222'})
+	  ```
+#####	 2:第二种方法
+	```
+	 import {mapState,mapGetters,mapMutations} from 'vuex'
+	 
+	 methods:{
+	 	...mapMutations(['changeSudentList']),//注意个state,getters的区别,这是在methods
+	 	handleClick(){
+	 		const tepObj={
+	 			name:this.name,
+	 			age:this.age,
+	 			look:'漂亮',
+	 			key:+new Date()
+	 		}
+	 		// this.$store.state.studentlist.push(obj);
+	 		// this.$store.commit('changeSudentList',{tepObj,name:'11',age:'222'})
+	 		this.changeSudentList(tepObj);
+	 	}
+	 }
+```	 
+#### 4:Actions 和mutations不同的地方就是可以使用异步代码
+#####		1:配置
+```
+			mutations: {
+				changeSudentList(state,{tepObj,name,age}){
+					console.log(tepObj);
+					state.studentlist.push(tepObj);
+					state.name=name;
+					state.age=age;
+				}
+			},
+		actions: {
+				changeSudentList({commit},payload){//commit是主动触发commit函数,payload是参数
+					setTimeout(()=>{
+						commit('changeSudentList',payload)//触发的是mutations的changeSudentList方法
+					},1000)
+				}
+		}
+```
+#####		2:使用:第一种方法
+```
+		methods:{
+			// ...mapMutations(['changeSudentList']),
+			handleClick(){
+				const tepObj={
+					name:this.name,
+					age:this.age,
+					look:'漂亮',
+					key:+new Date()
+				}
+				// this.$store.state.studentlist.push(obj);
+				// this.$store.commit('changeSudentList',{tepObj,name:'11',age:'222'})
+				// this.changeSudentList(tepObj);
+				 this.$store.dispatch('changeSudentList',{tepObj,name:'11',age:'222'});
+			}
+		}
+```
+#####		3:抵用第二种方法
+```
+		import {mapState,mapGetters,mapMutations,mapActions} from 'vuex'
+		
+		methods:{
+			// ...mapMutations(['changeSudentList']),
+			...mapActions(['changeSudentList']),
+			handleClick(){
+				const tepObj={
+					name:this.name,
+					age:this.age,
+					look:'漂亮',
+					key:+new Date()
+				}
+				// this.$store.state.studentlist.push(obj);
+				// this.$store.commit('changeSudentList',{tepObj,name:'11',age:'222'})
+				// this.changeSudentList(tepObj);
+				// this.$store.dispatch('changeSudentList',{tepObj,name:'11',age:'222'});
+				this.changeSudentList({tepObj,name:'11',age:'222'})
+			}
+		}
+```
