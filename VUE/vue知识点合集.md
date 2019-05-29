@@ -757,7 +757,7 @@
 
 	命令:vue add vuex
 	$store 状态管理对象
-##	state
+### state
 	```
 	 state: {
 	  name:'ss',
@@ -884,7 +884,6 @@
 #####		3:抵用第二种方法
 ```
 		import {mapState,mapGetters,mapMutations,mapActions} from 'vuex'
-		
 		methods:{
 			// ...mapMutations(['changeSudentList']),
 			...mapActions(['changeSudentList']),
@@ -903,3 +902,108 @@
 			}
 		}
 ```
+## 二十:module
+```
+state 会放入到每一个模块下面,getters,mutations,actions会直放到全局里面
+import student from './student'
+import learn from './learn'
+Vue.use(Vuex)
+export default new Vuex.Store({
+  strict:process.env.NODE_ENV!=='production',
+  modules:{
+	  student,//两个外部state模快 和index文件见在同一个文件夹下
+	  learn
+  }
+})
+```
+
+#### student.js
+```
+export default{
+	state: {
+	  name:'ss',
+		age:'18',
+		look:'piaoliang',
+		key:'',
+		studentlist:[]
+	},
+	getters:{//类似于vue里面的计算属性,根据data里面的值得到一个新的值
+		  person(state){
+				return `姓名:${state.name} 年龄:${state.age}`;
+			},
+			newStudentList(state,getters){
+				 return state.studentlist.map(student=>`这是姓名${student.name} 这是年龄:${student.age} 这是getters:${getters.person}`)
+			}
+		},
+	mutations: {
+				changeSudentList(state,{tepObj,name,age}){
+					state.studentlist.push(tepObj);
+					state.name=name;
+					state.age=age;
+				}
+	},
+	actions: {
+				changeSudentList({commit},payload){
+					setTimeout(()=>{
+						commit('changeSudentList',payload)
+					},1000)
+				}
+	}
+}
+```
+#### lean.js
+```
+export default{
+	namespaced:true,
+	state:{
+		courseName:'js精英课堂',
+		price:10
+	},
+	getters:{
+		coursePrice(state){
+			return '¥'+state.price;
+		}
+	},
+	mutations:{
+		changePrice(state,{price}){
+			state.price=price;
+		}
+	},
+	actions:{
+		
+	}
+}
+```
+### 获取vuex中的数据 无namespaced情况
+	```
+	获取state:this.$store.state.moduleName.xxx  {{$store.state.courseName}}
+	获取getters,mutations,action:
+	获取getters:this.$store.getters.xxx   {{$store.getters.coursePrice}}
+	获取mutations:this.$store.commit('xxx'); this.$store.commit('changePrice',{price:20})
+	获取actions:this.$store.dispatch('xxx'); this.$store.dispatch('changePrice',{price:20}})
+	可以通过mapxxx的方可以拿到getters,mutations,action,但是拿不到state,如果想通过这样的方式获取state,需要在添加命名空间
+	namespaced:true(在每一个模块的state的文件里面)
+	```
+### 获取cuex中的数据 有namespaced情况
+	```
+	获取state:this.$store.state.moduleName.xxx  {{$store.state.learn.courseName}}
+	获取getters:this.$store['moduleName/getters'].xxx this.$store['learn/getters'].coursePrice  
+	获取mutations:this.$store.commit('moduleName/xxx');  this.$store.commit('learn/changePrice',{price:20})
+	获取actions:this.$store.dispatch('moduleName/xxx'); this.$store.dispatch('learn/changePrice',{price:20}})
+	可以通过mapXXX:mapXXX('moduleName',['xxx']) 或者mapXXX('moduleName',{})
+	
+	{{courseName}}
+	{{coursePrice}}
+	import {mapGetters,mapState} from 'vuex'
+	export default{
+		methods:{
+			handleClick(){
+				this.$store.commit('learn/changePrice',{price:20})
+			}
+		},
+		computed: {
+			...mapGetters('learn',['coursePrice']),
+			...mapState('learn',['courseName'])
+		},
+	}
+	```
